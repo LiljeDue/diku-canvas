@@ -866,7 +866,24 @@ type Window(t:string, w:int, h:int) =
                 |> InternalEvent
             
             f.Invoke(ev)
-    
+
+    member this.WaitEventTimeout (timeoutMs : int, f : Action<InternalEvent>) =
+        this.AssertWindowExists ()
+
+        if eventQueues[windowId].Count = 0 then
+            let gotEvent = SDL.SDL_WaitEventTimeout(&event, timeoutMs)
+            if gotEvent = 1 then
+                this.EnqueueEvent event
+                this.WaitEventTimeout(timeoutMs, f)
+            else
+                ()
+        else
+            while eventQueues[windowId].Count <> 0 do
+                let ev =
+                    eventQueues[windowId].Dequeue ()
+                    |> InternalEvent
+                f.Invoke(ev)
+
     member this.PollEvents (f : Action<InternalEvent>) =
         this.AssertWindowExists ()
 
